@@ -43,24 +43,15 @@ public class MyAccessibilityService extends AccessibilityService {
                 public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                     return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
-            }, new Action() {
+            }, new Action("Open Dev Setting Activity", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeIdFilter("android:id/alertTitle", new NodeFilter.Foo() {
+                @Override
+                public boolean foo(List<AccessibilityNodeInfo> nodeList) {
+                    return TextUtils.equals(nodeList.get(0).getText(), "Allow development settings?");
+                }
+            }), new NodeIdFilter("android:id/button1")) {
                 @Override
                 public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
-                    AccessibilityNodeInfo source = accessibilityEvent.getSource();
-                    if (source != null) {
-                        if (accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && TextUtils.equals(accessibilityEvent.getPackageName(), "com.android.settings") && TextUtils.equals(accessibilityEvent.getClassName(), "android.app.AlertDialog")) {
-                            List<AccessibilityNodeInfo> titleNodes = source.findAccessibilityNodeInfosByViewId("android:id/alertTitle");
-                            if (!titleNodes.isEmpty() && TextUtils.equals(titleNodes.get(0).getText(), "Allow development settings?")) {
-                                List<AccessibilityNodeInfo> okNodes = source.findAccessibilityNodeInfosByViewId("android:id/button1");
-                                if (!okNodes.isEmpty()) {
-                                    AccessibilityNodeInfo okNode = okNodes.get(0);
-                                    return okNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                }
-                            }
-                        }
-                        source.recycle();
-                    }
-                    return false;
+                    return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             }, new Action() {
                 @Override
@@ -155,20 +146,23 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     public static abstract class NodeFilter extends ActionFilter {
-        public String[] objs;       // Node id or text
+        public interface Foo {
+            boolean foo(List<AccessibilityNodeInfo> nodeList);
+        }
+        public String obj;       // Node id or text
+        public Foo foo;
         public List<AccessibilityNodeInfo> nodeList;
-        public NodeFilter(String... objs) {
-            this.objs = objs;
+        public NodeFilter(String obj, Foo foo) {
+            this.obj = obj;
+            this.foo = foo;
         }
 
         @Override
         public boolean filter(AccessibilityEvent accessibilityEvent) {
-            for (String obj : objs) {
-                List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);
-                if (!nodes.isEmpty()) {
-                    nodeList = nodes;
-                    return true;
-                }
+            List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);
+            if (!nodes.isEmpty()) {
+                nodeList = nodes;
+                return foo == null ? true : foo.foo(nodes);
             }
 
             nodeList = new ArrayList<>();
@@ -178,8 +172,12 @@ public class MyAccessibilityService extends AccessibilityService {
         public abstract List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj);
     }
     public static class NodeTextFilter extends NodeFilter {
-        public NodeTextFilter(String... objs) {
-            super(objs);
+        public NodeTextFilter(String obj) {
+            super(obj, null);
+        }
+
+        public NodeTextFilter(String obj, Foo foo) {
+            super(obj, foo);
         }
 
         @Override
@@ -188,8 +186,12 @@ public class MyAccessibilityService extends AccessibilityService {
         }
     }
     public static class NodeIdFilter extends NodeFilter {
-        public NodeIdFilter(String... objs) {
-            super(objs);
+        public NodeIdFilter(String obj) {
+            super(obj, null);
+        }
+
+        public NodeIdFilter(String obj, Foo foo) {
+            super(obj, foo);
         }
 
         @Override
