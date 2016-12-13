@@ -59,4 +59,4 @@ dependencies {
     compile 'com.licaigc:androidbaselibrary:1.3.2'
 }
 
-apply from: 'https://raw.githubusercontent.com/walfud/PutToMaven/v2.2.1/jcenter.gradle'
+//apply from: 'https://raw.githubusercontent.com/walfud/PutToMaven/v2.2.1/jcenter.gradle'

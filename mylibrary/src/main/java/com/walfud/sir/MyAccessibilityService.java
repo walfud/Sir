@@ -2,7 +2,6 @@ package com.walfud.sir;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
-import android.os.Handler;
 import android.os.Parcelable;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -13,6 +12,7 @@ import android.view.accessibility.AccessibilityRecord;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -40,24 +40,23 @@ public class MyAccessibilityService extends AccessibilityService {
                     startActivity(intent);
                     return true;
                 }
-            }, new EasyAction() {
+            }, new Action("", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity")) {
                 @Override
-                public boolean handle(int eventType, long eventTime, int contentChangeTypes, CharSequence packageName, CharSequence className, int windowId, CharSequence contentDescription, int scrollX, int scrollY, AccessibilityNodeInfo source, int recordCount, AccessibilityRecord[] records) {
-                    if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && TextUtils.equals(packageName, "com.android.settings") && TextUtils.equals(className, "com.android.settings.Settings$DevelopmentSettingsActivity")) {
-                        List<AccessibilityNodeInfo> switchBarNodes = source.findAccessibilityNodeInfosByViewId("com.android.settings:id/switch_bar");
-                        if (!switchBarNodes.isEmpty()) {
-                            List<AccessibilityNodeInfo> switchBoxNodes = switchBarNodes.get(0).findAccessibilityNodeInfosByViewId("com.android.settings:id/switch_widget");
-                            if (!switchBoxNodes.isEmpty()) {
-                                AccessibilityNodeInfo switchBoxNode = switchBoxNodes.get(0);
-                                if (switchBoxNode.isChecked()) {
-                                    // Open -> Closed
-                                } else {
-                                    // Closed -> Open
-                                }
-                                return switchBoxNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                public boolean handle(AccessibilityEvent accessibilityEvent) {
+                    List<AccessibilityNodeInfo> switchBarNodes = accessibilityEvent.getSource().findAccessibilityNodeInfosByViewId("com.android.settings:id/switch_bar");
+                    if (!switchBarNodes.isEmpty()) {
+                        List<AccessibilityNodeInfo> switchBoxNodes = switchBarNodes.get(0).findAccessibilityNodeInfosByViewId("com.android.settings:id/switch_widget");
+                        if (!switchBoxNodes.isEmpty()) {
+                            AccessibilityNodeInfo switchBoxNode = switchBoxNodes.get(0);
+                            if (switchBoxNode.isChecked()) {
+                                // Open -> Closed
+                            } else {
+                                // Closed -> Open
                             }
+                            return switchBoxNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                         }
                     }
+
                     return false;
                 }
             }, new Action() {
@@ -97,21 +96,72 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     // internal
-    public static class Action {
+    public static abstract class Action {
         public static final String TAG = "Action";
 
         public String actionName;
+        public List<ActionFilter> filterList;
         public Action() {
             this("");
         }
 
-        public Action(String actionName) {
+        public <T extends ActionFilter> Action(String actionName, T... filters) {
             this.actionName = actionName;
+            this.filterList = Arrays.<ActionFilter>asList(filters);
         }
 
-        public boolean handle(AccessibilityEvent accessibilityEvent) {
+        private boolean filter(AccessibilityEvent accessibilityEvent) {
+            for (ActionFilter filter : filterList) {
+                if (!filter.filter(accessibilityEvent)) {
+                    Log.v(TAG, String.format("drop: %s", accessibilityEvent.toString()));
+                    return false;
+                }
+            }
+
             Log.v(TAG, String.format("accept: %s", accessibilityEvent.toString()));
+            handle(accessibilityEvent);
             return true;
+        }
+
+        public abstract boolean handle(AccessibilityEvent accessibilityEvent);
+    }
+
+    public static abstract class ActionFilter {
+        public abstract boolean filter(AccessibilityEvent accessibilityEvent);
+    }
+
+    public static class NotNullFilter extends ActionFilter {
+        @Override
+        public boolean filter(AccessibilityEvent accessibilityEvent) {
+            return accessibilityEvent != null
+                    && !TextUtils.isEmpty(accessibilityEvent.getPackageName())
+                    && !TextUtils.isEmpty(accessibilityEvent.getClassName())
+                    && accessibilityEvent.getSource() != null;
+        }
+    }
+
+    public static class PackageFilter extends ActionFilter {
+        private String packageName;
+
+        public PackageFilter(String packageName) {
+            this.packageName = packageName;
+        }
+
+        @Override
+        public boolean filter(AccessibilityEvent accessibilityEvent) {
+            return TextUtils.equals(packageName, accessibilityEvent.getPackageName());
+        }
+    }
+    public static class ClassFilter extends ActionFilter {
+        private String className;
+
+        public ClassFilter(String className) {
+            this.className = className;
+        }
+
+        @Override
+        public boolean filter(AccessibilityEvent accessibilityEvent) {
+            return TextUtils.equals(className, accessibilityEvent.getClassName());
         }
     }
 
@@ -198,11 +248,13 @@ public class MyAccessibilityService extends AccessibilityService {
                 return;
             }
 
-            if (action.handle(accessibilityEvent)) {
-                Log.d(TAG, String.format("emit: %s", accessibilityEvent.toString()));
+            if (action.filter(accessibilityEvent)) {
+                if (action.handle(accessibilityEvent)) {
+                    Log.d(TAG, String.format("emit: %s", accessibilityEvent.toString()));
 
-                mHandlerQueue.remove();
-                mRecordList.add(new Record(action.actionName, System.currentTimeMillis()));
+                    mHandlerQueue.remove();
+                    mRecordList.add(new Record(action.actionName, System.currentTimeMillis()));
+                }
             }
         }
     }
