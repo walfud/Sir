@@ -9,11 +9,15 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
+import com.walfud.sir.engine.Action;
+import com.walfud.sir.engine.Engine;
+import com.walfud.sir.engine.filter.ClassFilter;
+import com.walfud.sir.engine.filter.NodeFilter;
+import com.walfud.sir.engine.filter.NodeIdFilter;
+import com.walfud.sir.engine.filter.NotNullFilter;
+import com.walfud.sir.engine.filter.PackageFilter;
+
 import java.util.List;
-import java.util.Queue;
 
 /**
  * Created by walfud on 2016/12/3.
@@ -23,14 +27,14 @@ public class MyAccessibilityService extends AccessibilityService {
 
     public static final String TAG = "MyAccessibilityService";
 
-    private Op mOp;
+    private Engine mEngine;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
         Log.v(TAG, String.format("recv: %s", accessibilityEvent.toString()));
 
-        if (mOp == null) {
-            mOp = new Op(new Action() {
+        if (mEngine == null) {
+            mEngine = new Engine(new Action() {
                 @Override
                 public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
@@ -62,182 +66,11 @@ public class MyAccessibilityService extends AccessibilityService {
             });
         }
 
-        mOp.dispatchEvent(accessibilityEvent);
+        mEngine.dispatchEvent(accessibilityEvent);
     }
 
     @Override
     public void onInterrupt() {
 
-    }
-
-    // internal
-    public static abstract class Action {
-        public static final String TAG = "Action";
-
-        public String actionName;
-        public List<ActionFilter> filterList;
-        public AccessibilityNodeInfo lastNode0;     // `nodeInfoList.get(0)` at latest node filter
-        public Action() {
-            this("");
-        }
-
-        public <T extends ActionFilter> Action(String actionName, T... filters) {
-            this.actionName = actionName;
-            this.filterList = Arrays.<ActionFilter>asList(filters);
-        }
-
-        public boolean filter(AccessibilityEvent accessibilityEvent) {
-            for (int i = 0; i < filterList.size(); i++) {
-                ActionFilter filter = filterList.get(i);
-                if (!filter.filter(accessibilityEvent)) {
-                    Log.v(TAG, String.format("drop: %s", accessibilityEvent.toString()));
-                    return false;
-                }
-
-                if (i == filterList.size() - 1 && filter instanceof NodeFilter) {
-                    lastNode0 = ((NodeFilter) filter).nodeList.get(0);
-                }
-            }
-
-            Log.v(TAG, String.format("accept: %s", accessibilityEvent.toString()));
-            return true;
-        }
-
-        public abstract boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0);
-    }
-
-    public static abstract class ActionFilter {
-        public abstract boolean filter(AccessibilityEvent accessibilityEvent);
-    }
-
-    public static class NotNullFilter extends ActionFilter {
-        @Override
-        public boolean filter(AccessibilityEvent accessibilityEvent) {
-            return accessibilityEvent != null
-                    && !TextUtils.isEmpty(accessibilityEvent.getPackageName())
-                    && !TextUtils.isEmpty(accessibilityEvent.getClassName())
-                    && accessibilityEvent.getSource() != null;
-        }
-    }
-
-    public static class PackageFilter extends ActionFilter {
-        private String packageName;
-
-        public PackageFilter(String packageName) {
-            this.packageName = packageName;
-        }
-
-        @Override
-        public boolean filter(AccessibilityEvent accessibilityEvent) {
-            return TextUtils.equals(packageName, accessibilityEvent.getPackageName());
-        }
-    }
-    public static class ClassFilter extends ActionFilter {
-        private String className;
-
-        public ClassFilter(String className) {
-            this.className = className;
-        }
-
-        @Override
-        public boolean filter(AccessibilityEvent accessibilityEvent) {
-            return TextUtils.equals(className, accessibilityEvent.getClassName());
-        }
-    }
-
-    public static abstract class NodeFilter extends ActionFilter {
-        public interface PropFilter {
-            boolean propFilter(List<AccessibilityNodeInfo> nodeList);
-        }
-        public String obj;       // Node id or text
-        public PropFilter propFilter;
-        public List<AccessibilityNodeInfo> nodeList;
-        public NodeFilter(String obj, PropFilter propFilter) {
-            this.obj = obj;
-            this.propFilter = propFilter;
-        }
-
-        @Override
-        public boolean filter(AccessibilityEvent accessibilityEvent) {
-            List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);
-            if (!nodes.isEmpty()) {
-                nodeList = nodes;
-                return propFilter == null ? true : propFilter.propFilter(nodes);
-            }
-
-            nodeList = new ArrayList<>();
-            return false;
-        }
-
-        public abstract List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj);
-    }
-    public static class NodeTextFilter extends NodeFilter {
-        public NodeTextFilter(String obj) {
-            super(obj, null);
-        }
-
-        public NodeTextFilter(String obj, PropFilter propFilter) {
-            super(obj, propFilter);
-        }
-
-        @Override
-        public List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj) {
-            return nodeInfo.findAccessibilityNodeInfosByText(obj);
-        }
-    }
-    public static class NodeIdFilter extends NodeFilter {
-        public NodeIdFilter(String obj) {
-            super(obj, null);
-        }
-
-        public NodeIdFilter(String obj, PropFilter propFilter) {
-            super(obj, propFilter);
-        }
-
-        @Override
-        public List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj) {
-            return nodeInfo.findAccessibilityNodeInfosByViewId(obj);
-        }
-    }
-
-    public static class Record {
-        public String actionName;
-        public long timestamp;
-
-        public Record(String actionName, long timestamp) {
-            this.actionName = actionName;
-            this.timestamp = timestamp;
-        }
-    }
-
-    public static class Op {
-        public static final String TAG = "Op";
-
-        protected Queue<Action> mHandlerQueue;
-        protected List<Record> mRecordList;
-
-        public Op(Action... actions) {
-            mHandlerQueue = new LinkedList<>();
-            for (Action action : actions) {
-                mHandlerQueue.add(action);
-            }
-            mRecordList = new ArrayList<>();
-        }
-
-        public void dispatchEvent(AccessibilityEvent accessibilityEvent) {
-            Action action = mHandlerQueue.peek();
-            if (action == null) {
-                return;
-            }
-
-            if (action.filter(accessibilityEvent)) {
-                if (action.handle(accessibilityEvent, action.lastNode0)) {
-                    Log.d(TAG, String.format("emit: %s", accessibilityEvent.toString()));
-
-                    mHandlerQueue.remove();
-                    mRecordList.add(new Record(action.actionName, System.currentTimeMillis()));
-                }
-            }
-        }
     }
 }
