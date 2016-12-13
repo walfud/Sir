@@ -43,9 +43,9 @@ public class MyAccessibilityService extends AccessibilityService {
                 public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                     return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
-            }, new Action("Open Dev Setting Activity", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeIdFilter("android:id/alertTitle", new NodeFilter.Foo() {
+            }, new Action("Open Dev Setting Activity", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeIdFilter("android:id/alertTitle", new NodeFilter.PropFilter() {
                 @Override
-                public boolean foo(List<AccessibilityNodeInfo> nodeList) {
+                public boolean propFilter(List<AccessibilityNodeInfo> nodeList) {
                     return TextUtils.equals(nodeList.get(0).getText(), "Allow development settings?");
                 }
             }), new NodeIdFilter("android:id/button1")) {
@@ -146,15 +146,15 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     public static abstract class NodeFilter extends ActionFilter {
-        public interface Foo {
-            boolean foo(List<AccessibilityNodeInfo> nodeList);
+        public interface PropFilter {
+            boolean propFilter(List<AccessibilityNodeInfo> nodeList);
         }
         public String obj;       // Node id or text
-        public Foo foo;
+        public PropFilter propFilter;
         public List<AccessibilityNodeInfo> nodeList;
-        public NodeFilter(String obj, Foo foo) {
+        public NodeFilter(String obj, PropFilter propFilter) {
             this.obj = obj;
-            this.foo = foo;
+            this.propFilter = propFilter;
         }
 
         @Override
@@ -162,7 +162,7 @@ public class MyAccessibilityService extends AccessibilityService {
             List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);
             if (!nodes.isEmpty()) {
                 nodeList = nodes;
-                return foo == null ? true : foo.foo(nodes);
+                return propFilter == null ? true : propFilter.propFilter(nodes);
             }
 
             nodeList = new ArrayList<>();
@@ -176,8 +176,8 @@ public class MyAccessibilityService extends AccessibilityService {
             super(obj, null);
         }
 
-        public NodeTextFilter(String obj, Foo foo) {
-            super(obj, foo);
+        public NodeTextFilter(String obj, PropFilter propFilter) {
+            super(obj, propFilter);
         }
 
         @Override
@@ -190,8 +190,8 @@ public class MyAccessibilityService extends AccessibilityService {
             super(obj, null);
         }
 
-        public NodeIdFilter(String obj, Foo foo) {
-            super(obj, foo);
+        public NodeIdFilter(String obj, PropFilter propFilter) {
+            super(obj, propFilter);
         }
 
         @Override
