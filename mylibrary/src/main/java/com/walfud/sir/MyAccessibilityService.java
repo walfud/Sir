@@ -2,13 +2,11 @@ package com.walfud.sir;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
-import android.os.Parcelable;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.view.accessibility.AccessibilityRecord;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -34,34 +32,20 @@ public class MyAccessibilityService extends AccessibilityService {
         if (mOp == null) {
             mOp = new Op(new Action() {
                 @Override
-                public boolean handle(AccessibilityEvent accessibilityEvent) {
+                public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     startActivity(intent);
                     return true;
                 }
-            }, new Action("", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity")) {
+            }, new Action("Open Dev Setting Activity", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeIdFilter("com.android.settings:id/switch_bar"), new NodeIdFilter("com.android.settings:id/switch_widget")) {
                 @Override
-                public boolean handle(AccessibilityEvent accessibilityEvent) {
-                    List<AccessibilityNodeInfo> switchBarNodes = accessibilityEvent.getSource().findAccessibilityNodeInfosByViewId("com.android.settings:id/switch_bar");
-                    if (!switchBarNodes.isEmpty()) {
-                        List<AccessibilityNodeInfo> switchBoxNodes = switchBarNodes.get(0).findAccessibilityNodeInfosByViewId("com.android.settings:id/switch_widget");
-                        if (!switchBoxNodes.isEmpty()) {
-                            AccessibilityNodeInfo switchBoxNode = switchBoxNodes.get(0);
-                            if (switchBoxNode.isChecked()) {
-                                // Open -> Closed
-                            } else {
-                                // Closed -> Open
-                            }
-                            return switchBoxNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        }
-                    }
-
-                    return false;
+                public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
+                    return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             }, new Action() {
                 @Override
-                public boolean handle(AccessibilityEvent accessibilityEvent) {
+                public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                     AccessibilityNodeInfo source = accessibilityEvent.getSource();
                     if (source != null) {
                         if (accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && TextUtils.equals(accessibilityEvent.getPackageName(), "com.android.settings") && TextUtils.equals(accessibilityEvent.getClassName(), "android.app.AlertDialog")) {
@@ -80,7 +64,7 @@ public class MyAccessibilityService extends AccessibilityService {
                 }
             }, new Action() {
                 @Override
-                public boolean handle(AccessibilityEvent accessibilityEvent) {
+                public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                     Toast.makeText(getApplicationContext(), "Open 'Usb Debug' success", Toast.LENGTH_SHORT).show();
                     return true;
                 }
@@ -101,6 +85,7 @@ public class MyAccessibilityService extends AccessibilityService {
 
         public String actionName;
         public List<ActionFilter> filterList;
+        public AccessibilityNodeInfo lastNode0;     // `nodeInfoList.get(0)` at latest node filter
         public Action() {
             this("");
         }
@@ -110,20 +95,24 @@ public class MyAccessibilityService extends AccessibilityService {
             this.filterList = Arrays.<ActionFilter>asList(filters);
         }
 
-        private boolean filter(AccessibilityEvent accessibilityEvent) {
-            for (ActionFilter filter : filterList) {
+        public boolean filter(AccessibilityEvent accessibilityEvent) {
+            for (int i = 0; i < filterList.size(); i++) {
+                ActionFilter filter = filterList.get(i);
                 if (!filter.filter(accessibilityEvent)) {
                     Log.v(TAG, String.format("drop: %s", accessibilityEvent.toString()));
                     return false;
                 }
+
+                if (i == filterList.size() - 1 && filter instanceof NodeFilter) {
+                    lastNode0 = ((NodeFilter) filter).nodeList.get(0);
+                }
             }
 
             Log.v(TAG, String.format("accept: %s", accessibilityEvent.toString()));
-            handle(accessibilityEvent);
             return true;
         }
 
-        public abstract boolean handle(AccessibilityEvent accessibilityEvent);
+        public abstract boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0);
     }
 
     public static abstract class ActionFilter {
@@ -165,56 +154,47 @@ public class MyAccessibilityService extends AccessibilityService {
         }
     }
 
-    public static class EasyAction extends Action {
-        public static final String TAG = "EasyAction";
-
-        @Override
-        public final boolean handle(AccessibilityEvent accessibilityEvent) {
-            int recordCount = accessibilityEvent.getRecordCount();
-            AccessibilityRecord[] records = new AccessibilityRecord[recordCount];
-            for (int i = 0; i < recordCount; i++) {
-                records[i] = accessibilityEvent.getRecord(i);
-            }
-            int eventType = accessibilityEvent.getEventType();
-            int contentChangeTypes = accessibilityEvent.getContentChangeTypes();
-            long eventTime = accessibilityEvent.getEventTime();
-            CharSequence packageName = accessibilityEvent.getPackageName();
-            int movementGranularity = accessibilityEvent.getMovementGranularity();
-            int action = accessibilityEvent.getAction();
-            AccessibilityNodeInfo source = accessibilityEvent.getSource();
-            int windowId = accessibilityEvent.getWindowId();
-            int itemCount = accessibilityEvent.getItemCount();
-            int currentItemIndex = accessibilityEvent.getCurrentItemIndex();
-            int fromIndex = accessibilityEvent.getFromIndex();
-            int toIndex = accessibilityEvent.getToIndex();
-            int scrollX = accessibilityEvent.getScrollX();
-            int scrollY = accessibilityEvent.getScrollY();
-            int maxScrollX = accessibilityEvent.getMaxScrollX();
-            int maxScrollY = accessibilityEvent.getMaxScrollY();
-            int addedCount = accessibilityEvent.getAddedCount();
-            int removedCount = accessibilityEvent.getRemovedCount();
-            CharSequence className = accessibilityEvent.getClassName();
-            CharSequence beforeText = accessibilityEvent.getBeforeText();
-            CharSequence contentDescription = accessibilityEvent.getContentDescription();
-            Parcelable parcelableData = accessibilityEvent.getParcelableData();
-//            long sourceNodeId = accessibilityEvent.getSourceNodeId();
-
-            boolean ret = false;
-            if (!TextUtils.isEmpty(packageName) && source != null) {
-                Log.v(TAG, String.format("accept: %s", accessibilityEvent.toString()));
-                ret = handle(eventType, eventTime, contentChangeTypes, packageName, className, windowId, contentDescription, scrollX, scrollY, source, recordCount, records);
-            } else {
-                Log.v(TAG, String.format("drop: %s", accessibilityEvent.toString()));
-            }
-
-            if (source != null) {
-                source.recycle();
-            }
-            return ret;
+    public static abstract class NodeFilter extends ActionFilter {
+        public String[] objs;       // Node id or text
+        public List<AccessibilityNodeInfo> nodeList;
+        public NodeFilter(String... objs) {
+            this.objs = objs;
         }
 
-        public boolean handle(int eventType, long eventTime, int contentChangeTypes, CharSequence packageName, CharSequence className, int windowId, CharSequence contentDescription, int scrollX, int scrollY, AccessibilityNodeInfo source, int recordCount, AccessibilityRecord[] records) {
-            return true;
+        @Override
+        public boolean filter(AccessibilityEvent accessibilityEvent) {
+            for (String obj : objs) {
+                List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);
+                if (!nodes.isEmpty()) {
+                    nodeList = nodes;
+                    return true;
+                }
+            }
+
+            nodeList = new ArrayList<>();
+            return false;
+        }
+
+        public abstract List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj);
+    }
+    public static class NodeTextFilter extends NodeFilter {
+        public NodeTextFilter(String... objs) {
+            super(objs);
+        }
+
+        @Override
+        public List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj) {
+            return nodeInfo.findAccessibilityNodeInfosByText(obj);
+        }
+    }
+    public static class NodeIdFilter extends NodeFilter {
+        public NodeIdFilter(String... objs) {
+            super(objs);
+        }
+
+        @Override
+        public List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj) {
+            return nodeInfo.findAccessibilityNodeInfosByViewId(obj);
         }
     }
 
@@ -249,7 +229,7 @@ public class MyAccessibilityService extends AccessibilityService {
             }
 
             if (action.filter(accessibilityEvent)) {
-                if (action.handle(accessibilityEvent)) {
+                if (action.handle(accessibilityEvent, action.lastNode0)) {
                     Log.d(TAG, String.format("emit: %s", accessibilityEvent.toString()));
 
                     mHandlerQueue.remove();
