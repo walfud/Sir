@@ -16,6 +16,9 @@ allprojects {
     repositories {
         jcenter()
         maven { url "https://jitpack.io" }
+        maven {
+            url "http://artifactory.timitime.com/artifactory/libs-release-local"
+        }
     }
 }
 

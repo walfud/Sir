@@ -56,7 +56,7 @@ repositories {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.licaigc:androidbaselibrary:1.3.2'
+    compile 'com.licaigc:androidbaselibrary:1.4.5'
 }
 
 //apply from: 'https://raw.githubusercontent.com/walfud/PutToMaven/v2.2.1/jcenter.gradle'

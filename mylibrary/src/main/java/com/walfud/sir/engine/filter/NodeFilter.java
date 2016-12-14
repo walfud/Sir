@@ -10,29 +10,43 @@ import java.util.List;
  * Created by walfud on 2016/12/13.
  */
 
-public abstract class NodeFilter extends ActionFilter {
+public class NodeFilter extends ActionFilter {
+    public static final String TAG = "NodeFilter";
+
     public interface PropFilter {
         boolean propFilter(List<AccessibilityNodeInfo> nodeList);
     }
-    public String obj;       // Node id or text
+    public String idOrText;       // Node id or text
     public PropFilter propFilter;
     public List<AccessibilityNodeInfo> nodeList;
-    public NodeFilter(String obj, PropFilter propFilter) {
-        this.obj = obj;
+
+    public NodeFilter(String idOrText) {
+        this(idOrText, null);
+    }
+
+    public NodeFilter(String idOrText, PropFilter propFilter) {
+        this.idOrText = idOrText;
         this.propFilter = propFilter;
+        nodeList = new ArrayList<>();
     }
 
     @Override
     public boolean filter(AccessibilityEvent accessibilityEvent) {
-        List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);         // TODO: recycle
-        if (!nodes.isEmpty()) {
-            nodeList = nodes;
-            return propFilter == null ? true : propFilter.propFilter(nodes);
+        AccessibilityNodeInfo nodeInfo = accessibilityEvent.getSource();         // TODO: recycle
+        List<AccessibilityNodeInfo> nodesById = nodeInfo.findAccessibilityNodeInfosByViewId(idOrText);
+        List<AccessibilityNodeInfo> nodesByText = nodeInfo.findAccessibilityNodeInfosByText(idOrText);
+
+        nodeList.addAll(nodesById);
+        nodeList.addAll(nodesByText);
+        if (!nodeList.isEmpty()) {
+            return propFilter == null ? true : propFilter.propFilter(nodeList);
         }
 
-        nodeList = new ArrayList<>();
         return false;
     }
 
-    public abstract List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj);
+    @Override
+    public String toString() {
+        return String.format("%s:%s", TAG, nodeList);
+    }
 }

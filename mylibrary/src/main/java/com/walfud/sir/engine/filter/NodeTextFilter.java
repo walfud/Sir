@@ -1,31 +1,31 @@
 package com.walfud.sir.engine.filter;
 
+import android.text.TextUtils;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import java.util.List;
 
 /**
- * Created by walfud on 2016/12/13.
+ * Created by walfud on 2016/12/14.
  */
 
 public class NodeTextFilter extends NodeFilter {
     public static final String TAG = "NodeTextFilter";
 
-    public NodeTextFilter(String obj) {
-        super(obj, null);
-    }
+    public String value;
+    public NodeTextFilter(String idOrText, final String value) {
+        super(idOrText, new PropFilter() {
+            @Override
+            public boolean propFilter(List<AccessibilityNodeInfo> nodeList) {
+                return TextUtils.equals(nodeList.get(0).getText(), value);
+            }
+        });
 
-    public NodeTextFilter(String obj, PropFilter propFilter) {
-        super(obj, propFilter);
-    }
-
-    @Override
-    public List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj) {
-        return nodeInfo.findAccessibilityNodeInfosByText(obj);
+        this.value = value;
     }
 
     @Override
     public String toString() {
-        return String.format("%s:text(%s)", TAG, obj);
+        return String.format("%s:%s", TAG, value);
     }
 }
