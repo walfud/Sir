@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
 import com.walfud.sir.engine.Action;
+import com.walfud.sir.engine.DelayAction;
 import com.walfud.sir.engine.Engine;
 import com.walfud.sir.engine.filter.ClassFilter;
 import com.walfud.sir.engine.filter.NodeFilter;
@@ -42,17 +43,12 @@ public class MyAccessibilityService extends AccessibilityService {
                     startActivity(intent);
                     return true;
                 }
-            }, new Action("Open Developer Option", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeIdFilter("com.android.settings:id/switch_bar"), new NodeIdFilter("com.android.settings:id/switch_widget")) {
+            }, new DelayAction("Open Developer Option", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeIdFilter("com.android.settings:id/switch_bar"), new NodeIdFilter("com.android.settings:id/switch_widget")) {
                 @Override
                 public boolean handle(AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0) {
-                    return delay(new Delay(mEngine, accessibilityEvent, lastNode0) {
-                        @Override
-                        public boolean delay(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
-                            return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        }
-                    });
+                    return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
-            }, new Action("Agree", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeIdFilter("android:id/alertTitle", new NodeFilter.PropFilter() {
+            }, new DelayAction("Agree", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeIdFilter("android:id/alertTitle", new NodeFilter.PropFilter() {
                 @Override
                 public boolean propFilter(List<AccessibilityNodeInfo> nodeList) {
                     return TextUtils.equals(nodeList.get(0).getText(), "Allow development settings?");

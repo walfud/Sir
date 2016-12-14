@@ -33,7 +33,7 @@ public class Engine {
         }
 
         if (action.filter(accessibilityEvent)) {
-            if (action.handle(accessibilityEvent, action.lastNode0)) {
+            if (action.handleProxy(this, accessibilityEvent, action.lastNode0)) {
                 remove(accessibilityEvent);
             }
         }
