@@ -9,6 +9,8 @@ import java.util.List;
  */
 
 public class NodeTextFilter extends NodeFilter {
+    public static final String TAG = "NodeTextFilter";
+
     public NodeTextFilter(String obj) {
         super(obj, null);
     }
@@ -20,5 +22,10 @@ public class NodeTextFilter extends NodeFilter {
     @Override
     public List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj) {
         return nodeInfo.findAccessibilityNodeInfosByText(obj);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:text(%s)", TAG, obj);
     }
 }

@@ -12,6 +12,6 @@ public class NotNullFilter extends ActionFilter {
         return accessibilityEvent != null
                 && !TextUtils.isEmpty(accessibilityEvent.getPackageName())
                 && !TextUtils.isEmpty(accessibilityEvent.getClassName())
-                && accessibilityEvent.getSource() != null;
+                && accessibilityEvent.getSource() != null;      // TODO: recycle
     }
 }

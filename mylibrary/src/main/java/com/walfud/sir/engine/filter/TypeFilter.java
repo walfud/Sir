@@ -7,6 +7,8 @@ import android.view.accessibility.AccessibilityEvent;
  */
 
 public class TypeFilter extends ActionFilter {
+    public static final String TAG = "TypeFilter";
+
     private int type;
 
     public TypeFilter(int type) {
@@ -16,5 +18,10 @@ public class TypeFilter extends ActionFilter {
     @Override
     public boolean filter(AccessibilityEvent accessibilityEvent) {
         return type == accessibilityEvent.getEventType();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:%d", TAG, type);
     }
 }

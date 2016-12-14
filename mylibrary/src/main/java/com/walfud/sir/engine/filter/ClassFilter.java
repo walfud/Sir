@@ -8,6 +8,8 @@ import android.view.accessibility.AccessibilityEvent;
  */
 
 public class ClassFilter extends ActionFilter {
+    public static final String TAG = "ClassFilter";
+
     private String className;
 
     public ClassFilter(String className) {
@@ -17,5 +19,10 @@ public class ClassFilter extends ActionFilter {
     @Override
     public boolean filter(AccessibilityEvent accessibilityEvent) {
         return TextUtils.equals(className, accessibilityEvent.getClassName());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:%s", TAG, className);
     }
 }

@@ -24,7 +24,7 @@ public abstract class NodeFilter extends ActionFilter {
 
     @Override
     public boolean filter(AccessibilityEvent accessibilityEvent) {
-        List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);
+        List<AccessibilityNodeInfo> nodes = findMethod(accessibilityEvent.getSource(), obj);         // TODO: recycle
         if (!nodes.isEmpty()) {
             nodeList = nodes;
             return propFilter == null ? true : propFilter.propFilter(nodes);

@@ -9,6 +9,8 @@ import java.util.List;
  */
 
 public class NodeIdFilter extends NodeFilter {
+    public static final String TAG = "NodeIdFilter";
+
     public NodeIdFilter(String obj) {
         super(obj, null);
     }
@@ -20,5 +22,10 @@ public class NodeIdFilter extends NodeFilter {
     @Override
     public List<AccessibilityNodeInfo> findMethod(AccessibilityNodeInfo nodeInfo, String obj) {
         return nodeInfo.findAccessibilityNodeInfosByViewId(obj);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:id(%s)", TAG, obj);
     }
 }
