@@ -9,7 +9,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
 import com.walfud.sir.engine.Action;
-import com.walfud.sir.engine.DelayAction;
 import com.walfud.sir.engine.Engine;
 import com.walfud.sir.engine.filter.ClassFilter;
 import com.walfud.sir.engine.filter.NodeFilter;
@@ -47,7 +46,7 @@ public class MyAccessibilityService extends AccessibilityService {
                         return true;
                     }
 
-                    compose(new DelayAction("Agree", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeTextFilter("android:id/alertTitle", "Allow development settings?"), new NodeFilter("android:id/button1")) {
+                    compose(new Action("Agree", 1000, new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeTextFilter("android:id/alertTitle", "Allow development settings?"), new NodeFilter("android:id/button1")) {
                         @Override
                         public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                             return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
