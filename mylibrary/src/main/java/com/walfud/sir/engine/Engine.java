@@ -34,11 +34,16 @@ public class Engine {
 
         if (action.filter(accessibilityEvent)) {
             if (action.handle(accessibilityEvent, action.lastNode0)) {
-                Log.d(TAG, String.format("emit: %s", accessibilityEvent.toString()));
-
-                mHandlerQueue.remove();
-                mRecordList.add(new Record(action.actionName, System.currentTimeMillis()));
+                remove(accessibilityEvent);
             }
         }
+    }
+
+    //
+    public void remove(AccessibilityEvent accessibilityEvent) {
+        Log.d(TAG, String.format("emit: %s", accessibilityEvent.toString()));
+
+        Action action = mHandlerQueue.remove();
+        mRecordList.add(new Record(action.actionName, System.currentTimeMillis()));
     }
 }

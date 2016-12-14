@@ -1,5 +1,6 @@
 package com.walfud.sir.engine;
 
+import android.os.Handler;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -20,6 +21,7 @@ public abstract class Action {
     public String actionName;
     public List<ActionFilter> filterList;
     public AccessibilityNodeInfo lastNode0;     // `nodeInfoList.get(0)` at latest node filter
+    public volatile boolean finish;
     public Action() {
         this("");
     }
@@ -33,7 +35,7 @@ public abstract class Action {
         for (int i = 0; i < filterList.size(); i++) {
             ActionFilter filter = filterList.get(i);
             if (!filter.filter(accessibilityEvent)) {
-                Log.v(TAG, String.format("drop: %s", accessibilityEvent.toString()));
+                Log.v(TAG, String.format("drop(%s:%s): %s", actionName, filter.toString(), accessibilityEvent.toString()));
                 return false;
             }
 
@@ -42,9 +44,33 @@ public abstract class Action {
             }
         }
 
-        Log.v(TAG, String.format("accept: %s", accessibilityEvent.toString()));
+        Log.v(TAG, String.format("accept(%s): %s", actionName, accessibilityEvent.toString()));
         return true;
     }
 
     public abstract boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0);
+
+    public static abstract class Delay {
+        Engine engine;
+        AccessibilityEvent accessibilityEvent;
+        AccessibilityNodeInfo lastNode0;
+        public Delay(Engine engine, AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
+            this.engine = engine;
+            this.accessibilityEvent = accessibilityEvent;
+            this.lastNode0 = lastNode0;
+        }
+
+        public abstract boolean delay(AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0);
+    }
+    public boolean delay(final Delay delay) {
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (delay.delay(delay.accessibilityEvent, delay.lastNode0)) {
+                    delay.engine.remove(delay.accessibilityEvent);
+                }
+            }
+        }, 1000);
+        return false;
+    }
 }
