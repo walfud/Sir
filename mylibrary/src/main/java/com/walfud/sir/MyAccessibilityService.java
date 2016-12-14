@@ -40,14 +40,19 @@ public class MyAccessibilityService extends AccessibilityService {
                     startActivity(intent);
                     return true;
                 }
-            }, new DelayAction("Open Developer Option", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeFilter("com.android.settings:id/switch_bar"), new NodeFilter("com.android.settings:id/switch_widget")) {
+            }, new Action("Open Developer Option", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeFilter("com.android.settings:id/switch_bar"), new NodeFilter("com.android.settings:id/switch_widget")) {
                 @Override
                 public boolean handle(AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0) {
-                    return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                }
-            }, new DelayAction("Agree", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeTextFilter("android:id/alertTitle", "Allow development settings?"), new NodeFilter("android:id/button1")) {
-                @Override
-                public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
+                    if (lastNode0.isChecked()) {
+                        return true;
+                    }
+
+                    compose(new DelayAction("Agree", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeTextFilter("android:id/alertTitle", "Allow development settings?"), new NodeFilter("android:id/button1")) {
+                        @Override
+                        public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
+                            return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        }
+                    });
                     return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             }, new Action("Tip") {

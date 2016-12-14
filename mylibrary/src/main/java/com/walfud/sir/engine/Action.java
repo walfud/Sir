@@ -8,7 +8,9 @@ import com.walfud.sir.engine.filter.ActionFilter;
 import com.walfud.sir.engine.filter.NodeFilter;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 /**
  * Created by walfud on 2016/12/13.
@@ -18,36 +20,61 @@ public abstract class Action {
     public static final String TAG = "Action";
 
     public String actionName;
+    public long delayMs;
     public List<ActionFilter> filterList;
     public AccessibilityNodeInfo lastNode0;     // `nodeInfoList.get(0)` at latest node filter
-    public Action() {
-        this("");
+    public Queue<Action> actionQueue;
+    public Action(String name) {
+        this(name, -1);
     }
-
-    public <T extends ActionFilter> Action(String actionName, T... filters) {
+    public <T extends ActionFilter> Action(String name, T... filters) {
+        this(name, -1, filters);
+    }
+    public <T extends ActionFilter> Action(String actionName, long delayMs, T... filters) {
         this.actionName = actionName;
+        this.delayMs = delayMs;
         this.filterList = Arrays.<ActionFilter>asList(filters);
+        this.actionQueue = new LinkedList<>();
+        actionQueue.add(this);
     }
 
     public boolean filter(AccessibilityEvent accessibilityEvent) {
-        for (int i = 0; i < filterList.size(); i++) {
-            ActionFilter filter = filterList.get(i);
+        Action thiz = actionQueue.peek();
+
+        for (int i = 0; i < thiz.filterList.size(); i++) {
+            ActionFilter filter = thiz.filterList.get(i);
             if (!filter.filter(accessibilityEvent)) {
-                Log.v(TAG, String.format("drop(%s:%s): %s", actionName, filter.toString(), accessibilityEvent.toString()));
+                Log.v(TAG, String.format("drop(%s:%s): %s", thiz.actionName, filter.toString(), accessibilityEvent.toString()));
                 return false;
             }
 
-            if (i == filterList.size() - 1 && filter instanceof NodeFilter) {
-                lastNode0 = ((NodeFilter) filter).nodeList.get(0);
+            if (i == thiz.filterList.size() - 1 && filter instanceof NodeFilter) {
+                thiz.lastNode0 = ((NodeFilter) filter).nodeList.get(0);
             }
         }
 
-        Log.v(TAG, String.format("accept(%s): %s", actionName, accessibilityEvent.toString()));
+        Log.v(TAG, String.format("accept(%s): %s", thiz.actionName, accessibilityEvent.toString()));
         return true;
     }
 
     public boolean handleProxy(Engine engine, AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
-        return handle(accessibilityEvent, lastNode0);
+        Action thiz = actionQueue.peek();
+
+        if (thiz.handle(accessibilityEvent, lastNode0)) {
+            actionQueue.remove();
+        }
+
+        return actionQueue.isEmpty();
+    }
+
+    public void compose(Action... actions) {
+        for (Action action : actions) {
+            actionQueue.add(action);
+        }
+    }
+
+    public Action thiz() {
+        return actionQueue.peek();
     }
 
     public abstract boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0);
