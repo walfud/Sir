@@ -39,7 +39,7 @@ public class MyAccessibilityService extends AccessibilityService {
                     startActivity(intent);
                     return true;
                 }
-            }, new Action("Open Developer Option", new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeFilter("com.android.settings:id/switch_bar"), new NodeFilter("com.android.settings:id/switch_widget")) {
+            }, new Action("Open Developer Option", 1000, new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeFilter("com.android.settings:id/switch_bar"), new NodeFilter("com.android.settings:id/switch_widget")) {
                 @Override
                 public boolean handle(AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0) {
                     if (lastNode0.isChecked()) {

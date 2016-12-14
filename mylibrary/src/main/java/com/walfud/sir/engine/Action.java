@@ -61,23 +61,22 @@ public abstract class Action {
     public boolean handleProxy(final Engine engine, final AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0) {
         final Action thiz = actionQueue.peek();
 
-        if (thiz.delayMs < 0) {
-            if (thiz.handle(accessibilityEvent, lastNode0)) {
-                actionQueue.remove();
-            }
-        } else {
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (thiz.handle(accessibilityEvent, lastNode0)) {
-                        actionQueue.remove();
-
-                        if (actionQueue.isEmpty()) {
-                            engine.remove(accessibilityEvent);
-                        }
+        Runnable handleRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (thiz.handle(accessibilityEvent, lastNode0)) {
+                    actionQueue.remove();
+                    if (actionQueue.isEmpty()) {
+                        engine.remove(accessibilityEvent);
                     }
                 }
-            }, thiz.delayMs);
+            }
+        };
+
+        if (thiz.delayMs < 0) {
+            handleRunnable.run();
+        } else {
+            new Handler().postDelayed(handleRunnable, thiz.delayMs);
         }
 
         return actionQueue.isEmpty();
