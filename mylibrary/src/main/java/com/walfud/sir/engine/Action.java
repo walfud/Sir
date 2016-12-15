@@ -66,6 +66,8 @@ public abstract class Action {
             public void run() {
                 if (thiz.handle(accessibilityEvent, lastNode0)) {
                     actionQueue.remove();
+                    Log.d(TAG, String.format("emit: %s", thiz.actionName));
+
                     if (actionQueue.isEmpty()) {
                         engine.remove(accessibilityEvent);
                     }

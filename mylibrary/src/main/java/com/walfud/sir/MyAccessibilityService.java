@@ -16,6 +16,8 @@ import com.walfud.sir.engine.filter.NodeTextFilter;
 import com.walfud.sir.engine.filter.NotNullFilter;
 import com.walfud.sir.engine.filter.PackageFilter;
 
+import java.util.List;
+
 /**
  * Created by walfud on 2016/12/3.
  */
@@ -39,20 +41,50 @@ public class MyAccessibilityService extends AccessibilityService {
                     startActivity(intent);
                     return true;
                 }
-            }, new Action("Open Developer Option", 1000, new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeFilter("com.android.settings:id/switch_bar"), new NodeFilter("com.android.settings:id/switch_widget")) {
+            }, new Action("Open Developer Option", /*1000, */new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("com.android.settings.Settings$DevelopmentSettingsActivity"), new NodeFilter("com.android.settings:id/switch_bar"), new NodeFilter("com.android.settings:id/switch_widget")) {
                 @Override
                 public boolean handle(AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0) {
                     if (lastNode0.isChecked()) {
                         return true;
                     }
 
-                    compose(new Action("Agree", 1000, new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeTextFilter("android:id/alertTitle", "Allow development settings?"), new NodeFilter("android:id/button1")) {
+                    compose(new Action("Agree", /*1000, */new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeTextFilter("android:id/alertTitle", "Allow development settings?"), new NodeFilter("android:id/button1")) {
                         @Override
                         public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
                             return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                         }
                     });
                     return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }
+            }, new Action("Scroll down", /*1000, */new NotNullFilter(), new PackageFilter("com.android.settings")) {
+                @Override
+                public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
+                    AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+                    if (rootNode == null) {
+                        return false;
+                    }
+
+                    List<AccessibilityNodeInfo> nodeInfoList = rootNode.findAccessibilityNodeInfosByViewId("android:id/list");
+                    if (!nodeInfoList.isEmpty()) {
+                        AccessibilityNodeInfo nodeInfo = nodeInfoList.get(0);
+                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+                    }
+                    return true;
+                }
+            }, new Action("Open USB Debugging", /*1000, */new NotNullFilter(), new PackageFilter("com.android.settings"), new NodeFilter("USB debugging")) {
+                @Override
+                public boolean handle(AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0) {
+                    if (lastNode0.isChecked()) {
+                        return true;
+                    }
+
+                    compose(new Action("Agree", /*1000, */new NotNullFilter(), new PackageFilter("com.android.settings"), new ClassFilter("android.app.AlertDialog"), new NodeTextFilter("android:id/alertTitle", "Allow USB debugging?"), new NodeFilter("android:id/button1")) {
+                        @Override
+                        public boolean handle(AccessibilityEvent accessibilityEvent, AccessibilityNodeInfo lastNode0) {
+                            return lastNode0.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        }
+                    });
+                    return AccessibilityUtils.getClickableParent(lastNode0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
             }, new Action("Tip") {
                 @Override

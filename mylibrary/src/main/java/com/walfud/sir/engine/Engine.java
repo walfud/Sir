@@ -39,9 +39,9 @@ public class Engine {
 
     //
     public void remove(AccessibilityEvent accessibilityEvent) {
-        Log.d(TAG, String.format("emit: %s", accessibilityEvent.toString()));
-
         Action action = mHandlerQueue.remove();
         mRecordList.add(new Record(action.actionName, System.currentTimeMillis()));
+
+        Log.d(TAG, String.format("emit: %s", action.actionName));
     }
 }
