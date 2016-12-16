@@ -1,6 +1,5 @@
 package com.walfud.sir.engine;
 
-import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 import java.util.ArrayList;
@@ -33,15 +32,9 @@ public class Engine {
         }
 
         if (action.filter(accessibilityEvent)) {
-            action.handleProxy(this, accessibilityEvent, action.thiz().lastNode0);
+            if (action.handleProxy(this, accessibilityEvent, action.thiz().lastNode0)) {
+                mHandlerQueue.remove();
+            }
         }
-    }
-
-    //
-    public void remove(AccessibilityEvent accessibilityEvent) {
-        Action action = mHandlerQueue.remove();
-        mRecordList.add(new Record(action.actionName, System.currentTimeMillis()));
-
-        Log.d(TAG, String.format("emit: %s", action.actionName));
     }
 }

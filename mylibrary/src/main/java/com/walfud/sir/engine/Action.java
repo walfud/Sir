@@ -1,6 +1,5 @@
 package com.walfud.sir.engine;
 
-import android.os.Handler;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -61,24 +60,17 @@ public abstract class Action {
     public boolean handleProxy(final Engine engine, final AccessibilityEvent accessibilityEvent, final AccessibilityNodeInfo lastNode0) {
         final Action thiz = actionQueue.peek();
 
-        Runnable handleRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (thiz.handle(accessibilityEvent, lastNode0)) {
-                    actionQueue.remove();
-                    Log.d(TAG, String.format("emit: %s", thiz.actionName));
-
-                    if (actionQueue.isEmpty()) {
-                        engine.remove(accessibilityEvent);
-                    }
-                }
+        if (thiz.delayMs > 0) {
+            try {
+                Thread.sleep(thiz.delayMs);
+            } catch (Exception e) {
+//                e.printStackTrace();
             }
-        };
+        }
 
-        if (thiz.delayMs < 0) {
-            handleRunnable.run();
-        } else {
-            new Handler().postDelayed(handleRunnable, thiz.delayMs);
+        if (thiz.handle(accessibilityEvent, lastNode0)) {
+            actionQueue.remove();
+            Log.d(TAG, String.format("emit: %s", thiz.actionName));
         }
 
         return actionQueue.isEmpty();
